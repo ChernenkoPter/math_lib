@@ -45,7 +45,7 @@ namespace ml {
                 break;
 
             case Calculation::OperationType::Mul:
-                if (INT64_MAX / calc.right < calc.left)
+                if (calc.right != 0 && INT64_MAX / calc.right < calc.left)
                     calc.error = Calculation::ErrorCode::Overflow;
                 else
                     calc.result = calc.left * calc.right;
