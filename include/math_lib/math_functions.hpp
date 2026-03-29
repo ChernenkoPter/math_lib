@@ -8,7 +8,7 @@ namespace ml {
         enum class ErrorCode { NoError, DivByZero, Overflow, Underflow, NegativePower, NegativeFactorial } error;
     };
 
-    inline const char* to_str(Calculation::ErrorCode& ec) {
+    inline const char* to_str(const Calculation::ErrorCode& ec) {
         switch (ec) {
         case Calculation::ErrorCode::NoError:
             return "No Error";
