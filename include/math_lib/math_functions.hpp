@@ -45,7 +45,16 @@ namespace ml {
                 break;
 
             case Calculation::OperationType::Mul:
-                if (calc.right != 0 && INT64_MAX / calc.right < calc.left) // TODO: that's a BS, fix it
+                if (calc.right == 0 || calc.left == 0)
+                    calc.result = 0;
+                // TODO check if MAX / r / l && MIN / r / l is ok
+                else if (calc.right > 0 && calc.left > 0 && INT64_MAX / calc.right < calc.left)
+                    calc.error = Calculation::ErrorCode::Overflow;
+                else if (calc.right > 0 && calc.left < 0 && INT64_MIN / calc.right < calc.left)
+                    calc.error = Calculation::ErrorCode::Underflow;
+                else if (calc.right < 0 && calc.left > 0 && INT64_MIN / calc.right > calc.left)
+                    calc.error = Calculation::ErrorCode::Overflow;
+                else if (calc.right < 0 && calc.left < 0 && INT64_MAX / calc.right > calc.left)
                     calc.error = Calculation::ErrorCode::Overflow;
                 else
                     calc.result = calc.left * calc.right;
