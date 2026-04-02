@@ -31,14 +31,28 @@ namespace ml {
         calc.error = Calculation::ErrorCode::NoError;
         switch (calc.operation_type) {
             case Calculation::OperationType::Add:
-                if (INT64_MAX - calc.right < calc.left)
+                if (calc.right < 0) {
+                    Calculation sub = { calc.left, -calc.right, .operation_type = Calculation::OperationType::Sub };
+                    calculate(sub);
+                    if (sub.error == Calculation::ErrorCode::NoError)
+                        calc.result = sub.result;
+                    else
+                        calc.error = sub.error;
+                } else if (INT64_MAX - calc.right < calc.left)
                     calc.error = Calculation::ErrorCode::Overflow;
                 else
                     calc.result = calc.left + calc.right;
                 break;
 
             case Calculation::OperationType::Sub:
-                if (INT64_MIN + calc.right > calc.left)
+                if (calc.right < 0) {
+                    Calculation add = { calc.left, -calc.right, .operation_type = Calculation::OperationType::Add };
+                    calculate(add);
+                    if (add.error == Calculation::ErrorCode::NoError)
+                        calc.result = add.result;
+                    else
+                        calc.error = add.error;
+                } else if (INT64_MIN + calc.right > calc.left)
                     calc.error = Calculation::ErrorCode::Underflow;
                 else
                     calc.result = calc.left - calc.right;
