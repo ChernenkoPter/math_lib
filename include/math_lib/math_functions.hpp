@@ -1,121 +1,90 @@
 #include <cstdint>
+#include "errors.hpp"
 
 namespace ml {
-    struct Calculation {
-        int64_t left, right;
-        int64_t result;
-        enum class OperationType { Add, Sub, Mul, Div, Exp, Fac } operation_type;
-        enum class ErrorCode { NoError, DivByZero, Overflow, Underflow, NegativePower, NegativeFactorial } error;
+    class Calculation {
+    public:
+        enum class OperationType { Add, Sub, Mul, Div, Exp, Fac };
+
+        Calculation(int64_t left, OperationType op, int64_t right = 0)
+         : left_(left), op_(op), right_(right) { }
+
+        int64_t calculate() const;
+
+    private:
+        int64_t left_, right_;
+        OperationType op_;
     };
 
-    inline const char* to_str(const Calculation::ErrorCode& ec) {
-        switch (ec) {
-        case Calculation::ErrorCode::NoError:
-            return "No Error";
-        case Calculation::ErrorCode::DivByZero:
-            return "Cannot divide bu zero";
-        case Calculation::ErrorCode::Overflow:
-            return "Integer overflow";
-        case Calculation::ErrorCode::Underflow:
-            return "Integer underflow";
-        case Calculation::ErrorCode::NegativePower:
-            return "Didn't implement taking roots";
-        case Calculation::ErrorCode::NegativeFactorial:
-            return "Cannot calculate faclotial of negative number";
-        default:
-            return "Unknown error";
-        }
-    }
-
-    inline void calculate(Calculation& calc) {
-        calc.error = Calculation::ErrorCode::NoError;
-        switch (calc.operation_type) {
+    inline int64_t Calculation::calculate() const {
+        int64_t result = 0;
+        switch (op_) {
             case Calculation::OperationType::Add:
-                if (calc.right < 0) {
-                    Calculation sub = { calc.left, -calc.right, .operation_type = Calculation::OperationType::Sub };
-                    calculate(sub);
-                    if (sub.error == Calculation::ErrorCode::NoError)
-                        calc.result = sub.result;
-                    else
-                        calc.error = sub.error;
-                } else if (INT64_MAX - calc.right < calc.left)
-                    calc.error = Calculation::ErrorCode::Overflow;
-                else
-                    calc.result = calc.left + calc.right;
+                if (right_ < 0) {
+                    Calculation sub = { left_, OperationType::Sub, -right_ };
+                    result = sub.calculate();
+                } else if (INT64_MAX - right_ < left_) {
+                    throw Overflow();
+                } else {
+                    result = left_ + right_;
+                }
                 break;
 
             case Calculation::OperationType::Sub:
-                if (calc.right < 0) {
-                    Calculation add = { calc.left, -calc.right, .operation_type = Calculation::OperationType::Add };
-                    calculate(add);
-                    if (add.error == Calculation::ErrorCode::NoError)
-                        calc.result = add.result;
-                    else
-                        calc.error = add.error;
-                } else if (INT64_MIN + calc.right > calc.left)
-                    calc.error = Calculation::ErrorCode::Underflow;
-                else
-                    calc.result = calc.left - calc.right;
+                if (right_ < 0) {
+                    Calculation add = { left_, OperationType::Add, -right_ };
+                    result = add.calculate();
+                } else if (INT64_MIN + right_ > left_) {
+                    throw Underflow();
+                } else {
+                    result = left_ - right_;
+                }
                 break;
 
             case Calculation::OperationType::Mul:
-                if (calc.right == 0 || calc.left == 0)
-                    calc.result = 0;
-                else if (((calc.right > 0) == (calc.left > 0)) && (INT64_MAX / calc.right) / calc.left == 0)
-                    calc.error = Calculation::ErrorCode::Overflow;
-                else if (((calc.right > 0) ^ (calc.left > 0)) && (INT64_MIN / calc.right) / calc.left == 0)
-                    calc.error = Calculation::ErrorCode::Underflow;
+                if (right_ == 0 || left_ == 0)
+                    result = 0;
+                else if (((right_ > 0) == (left_ > 0)) && (INT64_MAX / right_) / left_ == 0)
+                    throw Overflow();
+                else if (((right_ > 0) ^ (left_ > 0)) && (INT64_MIN / right_) / left_ == 0)
+                    throw Underflow();
                 else
-                    calc.result = calc.left * calc.right;
+                    result = left_ * right_;
                 break;
 
             case Calculation::OperationType::Div:
-                if (calc.right == 0)
-                    calc.error = Calculation::ErrorCode::DivByZero;
+                if (right_ == 0)
+                    throw DivisionByZero();
                 else
-                    calc.result = calc.left / calc.right;
+                    result = left_ / right_;
                 break;
 
             case Calculation::OperationType::Exp:
-                if (calc.right < 0)
-                    calc.error = Calculation::ErrorCode::NegativePower;
+                if (right_ < 0)
+                    throw NegativePower();
                 else {
-                    calc.result = 1;
-                    while (calc.error == Calculation::ErrorCode::NoError && calc.right--) {
-                        Calculation mult_calc = { calc.left, calc.result, .operation_type = Calculation::OperationType::Mul };
-                        calculate(mult_calc);
-                        if (mult_calc.error != Calculation::ErrorCode::NoError)
-                            calc.error = mult_calc.error;
-                        else
-                            calc.result = mult_calc.result;
+                    result = 1;
+                    for (int64_t i = 0; i < right_; ++i) {
+                        Calculation mult = { left_, OperationType::Mul, result };
+                        result = mult.calculate();
                     }
                 }
                 break;
 
             case Calculation::OperationType::Fac:
-                if (calc.left < 0) {
-                    calc.error = Calculation::ErrorCode::NegativeFactorial;
+                if (left_ < 0) {
+                    throw NegativeFactorial();
+                }
+                if (left_ < 2) {
+                    result = 1;
                     break;
                 }
-                if (calc.left < 2) {
-                    calc.result = 1;
-                    break;
-                }
-                Calculation fac_calc;
-                fac_calc.left = calc.left - 1;
-                fac_calc.operation_type = calc.operation_type;
-                calculate(fac_calc);
-                if (fac_calc.error != Calculation::ErrorCode::NoError) {
-                    calc.error = fac_calc.error;
-                    break;
-                }
-                Calculation mult_calc = { calc.left, fac_calc.result, .operation_type = Calculation::OperationType::Mul };
-                calculate(mult_calc);
-                if (mult_calc.error != Calculation::ErrorCode::NoError)
-                    calc.error = mult_calc.error;
-                else
-                    calc.result = mult_calc.result;
+                Calculation fac = { left_ - 1, OperationType::Fac };
+                int64_t fac_res = fac.calculate();
+                Calculation mult = { left_, OperationType::Mul, fac_res };
+                result = mult.calculate();
                 break;
         }
+        return result;
     }
 }
