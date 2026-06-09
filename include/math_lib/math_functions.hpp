@@ -1,5 +1,6 @@
+#pragma once
 #include <cstdint>
-#include "errors.hpp"
+#include <errors.hpp>
 
 namespace ml {
     class Calculation {

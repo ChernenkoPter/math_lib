@@ -1,3 +1,4 @@
+#pragma once
 #include <exception>
 
 class CalculationError : std::exception {
