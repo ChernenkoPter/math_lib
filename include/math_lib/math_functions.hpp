@@ -42,8 +42,15 @@ namespace ml {
                 break;
 
             case Calculation::OperationType::Mul:
-                if (right_ == 0 || left_ == 0)
+                if (right_ == 0 || left_ == 0) {
                     result = 0;
+                    break;
+                }
+                if ((right_ == -1 || left_ == -1) && (right_ == INT64_MIN || left_ == INT64_MIN))
+                    throw Underflow();
+                else if (right_ == -1 || left_ == -1) {
+                    result = left_ * right_;
+                }
                 else if (((right_ > 0) == (left_ > 0)) && (INT64_MAX / right_) / left_ == 0)
                     throw Overflow();
                 else if (((right_ > 0) ^ (left_ > 0)) && (INT64_MIN / right_) / left_ == 0)
