@@ -9,3 +9,8 @@ target_include_directories(math_lib INTERFACE
 )
 
 target_compile_features(math_lib INTERFACE cxx_std_17)
+
+option(BUILD_TESTS "Build unit tests" OFF)
+if(BUILD_TESTS)
+    add_subdirectory(gtests)
+endif()
